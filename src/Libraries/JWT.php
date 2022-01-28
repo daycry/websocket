@@ -1,69 +1,17 @@
 <?php namespace Daycry\Websocket\Libraries;
 
-/**
- * JSON Web Token implementation, based on this spec:
- * http://tools.ietf.org/html/draft-ietf-oauth-json-web-token-06
- *
- * PHP version 5
- *
- * @category Authentication
- * @package  Authentication_JWT
- * @author   Neuman Vong <neuman@twilio.com>
- * @author   Anant Narayanan <anant@php.net>
- * @license  http://opensource.org/licenses/BSD-3-Clause 3-clause BSD
- * @link     https://github.com/firebase/php-jwt
- */
-class JWT
+use CodeIgniter\Config\BaseConfig;
+
+class JWT implements \Daycry\Websocket\Interfaces\JWTInterface
 {
     /**
-     * Decodes a JWT string into a PHP object.
-     *
-     * @param string $jwt The JWT
-     * @param string|null $key The secret key
-     * @param bool $verify Don't skip verification process
-     *
-     * @return object      The JWT's payload as a PHP object
-     * @throws UnexpectedValueException Provided JWT was invalid
-     * @throws DomainException          Algorithm was not provided
-     *
-     * @uses jsonDecode
-     * @uses urlsafeB64Decode
+     * JWT Config
      */
-    public static function decode($jwt, $key = null, $verify = true)
+    private BaseConfig $config;
+
+    public function __construct( BaseConfig $config )
     {
-        $tks = explode('.', $jwt);
-        if (count($tks) != 3) {
-            //if you don't want to disclose more details
-            return false;
-
-            //throw new UnexpectedValueException('Wrong number of segments');
-        }
-        list($headb64, $bodyb64, $cryptob64) = $tks;
-        if (null === ($header = JWT::jsonDecode(JWT::urlsafeB64Decode($headb64)))) {
-            //if you don't want to disclose more details
-            return false;
-
-            //throw new UnexpectedValueException('Invalid segment encoding');
-        }
-        if (null === $payload = JWT::jsonDecode(JWT::urlsafeB64Decode($bodyb64))) {
-            //if you don't want to disclose more details
-            return false;
-
-            //throw new UnexpectedValueException('Invalid segment encoding');
-        }
-        $sig = JWT::urlsafeB64Decode($cryptob64);
-        if ($verify) {
-            if (empty($header->alg)) {
-                //if you don't want to disclose more details
-                return false;
-
-                //throw new DomainException('Empty algorithm');
-            }
-            if ($sig != JWT::sign("$headb64.$bodyb64", $key, $header->alg)) {
-                throw new UnexpectedValueException('Signature verification failed');
-            }
-        }
-        return $payload;
+        $this->config = $config;
     }
 
     /**
@@ -78,19 +26,88 @@ class JWT
      * @uses jsonEncode
      * @uses urlsafeB64Encode
      */
-    public static function encode($payload, $key, $algo = 'HS256')
+    public function encode( $payload )
     {
-        $header = array('typ' => 'JWT', 'alg' => $algo);
+        $header = array('type' => 'JWT', 'alg' => $this->config->algo );
 
         $segments = array();
-        $segments[] = JWT::urlsafeB64Encode(JWT::jsonEncode($header));
-        $segments[] = JWT::urlsafeB64Encode(JWT::jsonEncode($payload));
+        $segments[] = JWT::urlsafeB64Encode( JWT::jsonEncode( $header ) );
+        $segments[] = JWT::urlsafeB64Encode (JWT::jsonEncode( $payload ) );
         $signing_input = implode('.', $segments);
 
-        $signature = JWT::sign($signing_input, $key, $algo);
-        $segments[] = JWT::urlsafeB64Encode($signature);
+        $signature = JWT::sign($signing_input, $this->config->key, $this->config->algo);
+        $segments[] = JWT::urlsafeB64Encode( $signature );
 
         return implode('.', $segments);
+    }
+
+    /**
+     * Decodes a JWT string into a PHP object.
+     *
+     * @param string $jwt The JWT
+     * @param string|null $key The secret key
+     * @param bool $verify Don't skip verification process
+     *
+     * @return object      The JWT's payload as a PHP object
+     * @throws UnexpectedValueException Provided JWT was invalid
+     * @throws DomainException          Algorithm was not provided
+     *
+     * @uses jsonDecode
+     * @uses urlsafeB64Decode
+     */
+    public function decode( $jwt )
+    {
+        $tks = explode('.', $jwt);
+        if (count($tks) != 3) {
+            //if you don't want to disclose more details
+            return false;
+
+            //throw new UnexpectedValueException('Wrong number of segments');
+        }
+        list($headb64, $bodyb64, $cryptob64) = $tks;
+        if( null === ( $header = JWT::jsonDecode(JWT::urlsafeB64Decode( $headb64 ) ) ) )
+        {
+            //if you don't want to disclose more details
+            return false;
+
+            //throw new UnexpectedValueException('Invalid segment encoding');
+        }
+        if( null === $payload = JWT::jsonDecode( JWT::urlsafeB64Decode( $bodyb64 ) ) )
+        {
+            //if you don't want to disclose more details
+            return false;
+
+            //throw new UnexpectedValueException('Invalid segment encoding');
+        }
+        $sig = JWT::urlsafeB64Decode( $cryptob64 );
+        if( $this->config->verify )
+        {
+            if( empty( $header->alg ) )
+            {
+                //if you don't want to disclose more details
+                return false;
+
+                //throw new DomainException('Empty algorithm');
+            }
+            if ($sig != JWT::sign("$headb64.$bodyb64", $this->config->key, $header->alg)) {
+                throw new \UnexpectedValueException('Signature verification failed');
+            }
+        }
+
+        log_message( 'error', json_encode( $payload ) );
+
+        if( $this->config->validateTimestamp )
+        {
+            if ($payload != false && ( now() - $payload->timestamp < ( $this->config->expiresAt * 60 ) ) )
+            {
+                return $payload;
+            }else{
+                return false;
+            }
+        }
+
+        return $payload;
+
     }
 
     /**
@@ -112,7 +129,7 @@ class JWT
             'HS512' => 'sha512',
         );
         if (empty($methods[$method])) {
-            throw new DomainException('Algorithm not supported');
+            throw new \DomainException('Algorithm not supported');
         }
         return hash_hmac($methods[$method], $msg, $key, true);
     }
@@ -131,7 +148,7 @@ class JWT
         if (function_exists('json_last_error') && $errno = json_last_error()) {
             JWT::_handleJsonError($errno);
         } else if ($obj === null && $input !== 'null') {
-            throw new DomainException('Null result with non-null input');
+            throw new \DomainException('Null result with non-null input');
         }
         return $obj;
     }
@@ -150,7 +167,7 @@ class JWT
         if (function_exists('json_last_error') && $errno = json_last_error()) {
             JWT::_handleJsonError($errno);
         } else if ($json === 'null' && $input !== null) {
-            throw new DomainException('Null result with non-null input');
+            throw new \DomainException('Null result with non-null input');
         }
         return $json;
     }
@@ -198,11 +215,10 @@ class JWT
             JSON_ERROR_CTRL_CHAR => 'Unexpected control character found',
             JSON_ERROR_SYNTAX => 'Syntax error, malformed JSON'
         );
-        throw new DomainException(
+        throw new \DomainException(
             isset($messages[$errno])
                 ? $messages[$errno]
                 : 'Unknown JSON error: ' . $errno
         );
     }
-
 }

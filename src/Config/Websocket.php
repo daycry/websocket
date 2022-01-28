@@ -10,8 +10,12 @@ class Websocket extends BaseConfig
     public $interval = 1;
     public $auth = false;
     public $debug = false;
-    public $jwt_key = "GGFSRTSYTSOPLGCCXS";
-    public $token_timeout = 1;
 
     public $callbacks = [ 'auth', 'event', 'close', 'timer' ];
+
+    /**
+     * JWT Token configuration
+     */
+    public $jwtClass = \Daycry\Websocket\Libraries\JWT::class;
+    public $jwtConfigClass = \Daycry\Websocket\Config\JWT::class;
 }
