@@ -41,16 +41,16 @@ class Websocket
 
         if ($this->config->debug)
         {
-            output('success', 'Running server on host ' . $this->config->host . ':' . $this->config->port);
+            output('success', 'Web Socket server on host ' . $this->config->host . ':' . $this->config->port);
         }
 
         if ($this->config->timer)
         {
             $server->loop->addPeriodicTimer($this->config->interval, function ()
             {
-                if (!empty($this->callback['citimer']))
+                if( !empty( $this->callback['timer'] ) )
                 {
-                    call_user_func_array($this->callback['citimer'], array(date('d-m-Y h:i:s a', time())));
+                    call_user_func_array( $this->callback['timer'], array( date( 'Y-m-d H:i:s', time() ) ) );
                 }
             });
         }

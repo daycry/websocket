@@ -22,6 +22,14 @@ class Websocket extends Controller
         $ws->run();
     }
 
+    public function send()
+    {
+        $client = new \WebSocket\Client("ws://localhost:8282");
+        //$client->text("Hello WebSocket.org!");
+        $client->send( json_encode( array('user_id' => 3, 'token' => null, 'type' => 'chat', 'message' => 'Super cool message to myself!' ) ) );
+        $client->close();
+    }
+
     public function user($user_id = null)
     {
         return view('Websocket/websocket_message', array('user_id' => $user_id));
@@ -36,6 +44,11 @@ class Websocket extends Controller
     public function _event($datas = null)
     {
         // Here you can do everyting you want, each time message is received
-        echo 'Hey ! I\'m an EVENT callback' . PHP_EOL;
+        log_message('error', 'Hey ! I\'m an EVENT callback: ' . json_encode( $datas ) );
+    }
+
+    public function _timer($datas = null)
+    {
+        log_message('error', 'Timer event: ' . $datas );
     }
 }

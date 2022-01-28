@@ -73,12 +73,23 @@ Open two pages of your project on the following URL with different IDs :
 `http://localhost:9092/Websocket/user/1`
 `http://localhost:9092/Websocket/user/2`
 
+## Broadcast messages with your php App
+
+If you want to broadcast message with php script or something else you can use library like [textalk/websocket](https://github.com/Textalk/websocket-php) ***(who is included in my composer.json as required library)***
+
+```php
+$client = new \WebSocket\Client('ws://0.0.0.0:8282');
+
+$client->send(json_encode(array('user_id' => 1, 'message' => null)));
+$client->send(json_encode(array('user_id' => 1, 'message' => 'Super cool message to myself!')));
+```
+
 <!-- Authentication & callbacks -->
 ## Authentication and callbacks
 
 There are few predefined callbacks, here's the list :
 
-` auth, event, close, citimer, roomjoin, roomleave, roomchat, chat `
+` auth, event, close, timer`
 
 Please check Websocket.php controller To get the Defining example of various Callback Function
 

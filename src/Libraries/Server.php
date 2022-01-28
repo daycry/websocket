@@ -9,11 +9,9 @@ class Server implements MessageComponentInterface
 {
     protected $clients;
 
-    /**
-     * List of subscribers (associative array)
-     * @var array
-     */
     protected array $subscribers = [];
+
+    private $users;
 
     protected $config;
 
@@ -37,8 +35,6 @@ class Server implements MessageComponentInterface
 
     public array $callback = array();
 
-    protected array $callback_type = array('auth', 'event', 'close', 'citimer', 'roomjoin', 'roomleave', 'roomchat');
-
     public function __construct(BaseConfig $config, $callback)
     {
         // Initialize object as SplObjectStorage (see PHP doc)
@@ -52,23 +48,26 @@ class Server implements MessageComponentInterface
         $this->callback = $callback;
 
         // // Check if auth is required
-        if ($this->config->auth && empty($this->callback['auth'])) {
+        if( $this->config->auth && empty( $this->callback['auth'] ) )
+        {
             output('fatal', 'Authentication callback is required, you must set it before run server, aborting..');
         }
 
         // Output
-        if ($this->config->debug) {
-            output('success',
-                'Running server on host ' . $this->config->host . ':' . $this->config->port);
+        if( $this->config->debug )
+        {
+            output('success', 'Running server on host ' . $this->config->host . ':' . $this->config->port);
         }
 
         // Output
-        if (!empty($this->callback['auth']) && $this->config->debug) {
+        if( !empty( $this->callback['auth'] ) && $this->config->debug )
+        {
             output('success', 'Authentication activated');
         }
 
         // Output
-        if (!empty($this->callback['close']) && $this->config->debug) {
+        if( !empty( $this->callback['close'] ) && $this->config->debug )
+        {
             output('success', 'Close activated');
         }
 
@@ -86,8 +85,9 @@ class Server implements MessageComponentInterface
         $this->clients->attach($connection);
 
         // Output
-        if ($this->config->debug) {
-            output('info', 'New client connected as (' . $connection->resourceId . ')');
+        if( $this->config->debug )
+        {
+            output( 'info', 'New client connected as (' . $connection->resourceId . ')' );
         }
     }
 
@@ -102,9 +102,10 @@ class Server implements MessageComponentInterface
     {
         // Broadcast var
         $broadcast = false;
-
+        
         // Check if received var is json format
-        if (valid_json($message)) {
+        if( valid_json( $message ) )
+        {
             // If true, we have to decode it
             $datas = json_decode($message);
 
@@ -116,15 +117,15 @@ class Server implements MessageComponentInterface
 
             // Here we have to reassign the client ressource ID, this will allow us to send message to specified client.
 
-            if (!empty($datas->type) && $datas->type == 'socket') {
-
-                if (!empty($this->callback['auth'])) {
-
+            if(!empty($datas->type) && $datas->type == 'socket')
+            {
+                if( !empty( $this->callback['auth'] ) )
+                {
                     // Call user personal callback
-                    $auth = call_user_func_array($this->callback['auth'], array($datas));
+                    $auth = call_user_func_array( $this->callback[ 'auth' ], array( $datas ) );
 
                     // Verify authentication
-                    if (empty($auth) || !is_integer($auth))
+                    if( empty( $auth ) || !is_integer( $auth ) )
                     {
                         output('error', 'Client (' . $client->resourceId . ') authentication failure');
                         $client->send(json_encode(array("type" => "error", "msg" => 'Invalid ID or Password.')));
@@ -135,7 +136,8 @@ class Server implements MessageComponentInterface
                     // Add UID to associative array of subscribers
                     $client->subscriber_id = $auth;
 
-                    if ($this->config->auth) {
+                    if( $this->config->auth )
+                    {
                         $data = json_encode(array("type" => "token", "token" => Authorization::generateToken($client->resourceId)));
                         $this->send_message($client, $data, $client);
                     }
@@ -146,111 +148,67 @@ class Server implements MessageComponentInterface
                         output('success', 'Token : ' . Authorization::generateToken($client->resourceId));
                     }
                 }
+            }else{
 
-            }
-
-
-            if (!empty($datas->type) && $datas->type == 'roomjoin') {
-                if (valid_jwt($datas->token) != false) {
-                    if (!empty($this->callback['roomjoin'])) {
-                        // Call user personal callback
-                        call_user_func_array($this->callback['roomjoin'], array($datas, $client));
+                // Now this is the management of messages destinations, at this moment, 4 possibilities :
+                // 1 - Message is not an array OR message has no destination (broadcast to everybody except us)
+                // 2 - Message is an array and have destination (broadcast to single user)
+                // 3 - Message is an array and don't have specified destination (broadcast to everybody except us)
+                // 4 - Message is an array and we wan't to broadcast to ourselves too (broadcast to everybody)
+                if( !empty( $datas->type ) )
+                {
+                    $pass = true;
+                    if( $this->config->auth )
+                    {
+                        if( valid_jwt( $datas->token ) != false )
+                        {
+                            if( !empty( $this->callback[ $datas->type ] ) )
+                            {
+                                // Call user personal callback
+                                call_user_func_array( $this->callback[ $datas->type ], array( $datas, $client ) );
+                            }
+                        } else {
+                            output( 'error', 'Client (' . $client->resourceId . ') authentication failure. Invalid Token' );
+                            $client->send( json_encode( array( "type" => "error", "msg" => 'Invalid Token.' ) ) );
+                            // Closing client connexion with error code "CLOSE_ABNORMAL"
+                            $client->close(1006);
+                            $pass = false;
+                        }
                     }
 
-                } else {
-                    $client->send(json_encode(array("type" => "error", "msg" => 'Invalid Token.')));
-                }
-
-            }
-
-            if (!empty($datas->type) && $datas->type == 'roomleave') {
-
-                if (valid_jwt($datas->token) != false) {
-
-                    if (!empty($this->callback['roomleave'])) {
-
-                        // Call user personal callback
-                        call_user_func_array($this->callback['roomleave'],
-                            array($datas, $client));
-
-                    }
-
-
-                } else {
-
-                    $client->send(json_encode(array("type" => "error", "msg" => 'Invalid Token.')));
-                }
-
-            }
-
-            if (!empty($datas->type) && $datas->type == 'roomchat') {
-
-                if (valid_jwt($datas->token) != false) {
-
-                    if (!empty($this->callback['roomchat'])) {
-
-                        // Call user personal callback
-                        call_user_func_array($this->callback['roomchat'],
-                            array($datas, $client));
-                    }
-
-                } else {
-
-                    $client->send(json_encode(array("type" => "error", "msg" => 'Invalid Token.')));
-                }
-
-            }
-
-
-            // Now this is the management of messages destinations, at this moment, 4 possibilities :
-            // 1 - Message is not an array OR message has no destination (broadcast to everybody except us)
-            // 2 - Message is an array and have destination (broadcast to single user)
-            // 3 - Message is an array and don't have specified destination (broadcast to everybody except us)
-            // 4 - Message is an array and we wan't to broadcast to ourselves too (broadcast to everybody)
-
-            if (!empty($datas->type) && $datas->type == 'chat') {
-
-                $pass = true;
-
-                if ($this->config->auth) {
-
-                    if (!valid_jwt($datas->token)) {
-                        output('error', 'Client (' . $client->resourceId . ') authentication failure. Invalid Token');
-                        $client->send(json_encode(array("type" => "error", "msg" => 'Invalid Token.')));
-                        // Closing client connexion with error code "CLOSE_ABNORMAL"
-                        $client->close(1006);
-                        $pass = false;
-                    }
-                }
-
-                if ($pass) {
-                    if (!empty($message)) {
-                        // We look arround all clients
-                        foreach ($this->clients as $user) {
-
-                            // Broadcast to single user
-                            if (!empty($datas->recipient_id)) {
-                                if ($user->subscriber_id == $datas->recipient_id) {
-                                    $this->send_message($user, $message, $client);
-                                    break;
-                                }
-                            } else {
-                                // Broadcast to everybody
-                                if ($broadcast) {
-                                    $this->send_message($user, $message, $client);
-                                } else {
-                                    // Broadcast to everybody except us
-                                    if ($client !== $user) {
+                    if( $pass )
+                    {
+                        if( !empty( $message ) )
+                        {
+                            // We look arround all clients
+                            foreach( $this->clients as $user )
+                            {
+                                // Broadcast to single user
+                                if( !empty( $datas->recipient_id ) )
+                                {
+                                    if( $user->subscriber_id == $datas->recipient_id )
+                                    {
                                         $this->send_message($user, $message, $client);
+                                        break;
+                                    }
+                                } else {
+                                    // Broadcast to everybody
+                                    if( $broadcast )
+                                    {
+                                        $this->send_message($user, $message, $client);
+                                    } else {
+                                        // Broadcast to everybody except us
+                                        if( $client !== $user )
+                                        {
+                                            $this->send_message($user, $message, $client);
+                                        }
                                     }
                                 }
                             }
                         }
                     }
                 }
-
             }
-
         } else {
             output('error', 'Client (' . $client->resourceId . ') Invalid json.');
             // Closing client connexion with error code "CLOSE_ABNORMAL"
@@ -268,11 +226,13 @@ class Server implements MessageComponentInterface
     public function onClose(ConnectionInterface $connection)
     {
         // Output
-        if ($this->config->debug) {
+        if( $this->config->debug )
+        {
             output('info', 'Client (' . $connection->resourceId . ') disconnected');
         }
 
-        if (!empty($this->callback['close'])) {
+        if( !empty( $this->callback['close'] ) )
+        {
             call_user_func_array($this->callback['close'], array($connection));
         }
         // Detach client from SplObjectStorage
@@ -289,7 +249,8 @@ class Server implements MessageComponentInterface
     public function onError(ConnectionInterface $connection, \Exception $e)
     {
         // Output
-        if ($this->config->debug) {
+        if( $this->config->debug )
+        {
             output('fatal', 'An error has occurred: ' . $e->getMessage());
         }
 
@@ -311,23 +272,22 @@ class Server implements MessageComponentInterface
         $user->send($message);
 
         // We have to check if event callback must be called
-        if (!empty($this->callback['event'])) {
-
+        if( !empty($this->callback['event'] ) )
+        {
             // At this moment we have to check if we have authent callback defined
-            call_user_func_array($this->callback['event'],
-                array((valid_json($message) ? json_decode($message) : $message)));
+            call_user_func_array( $this->callback['event'], array( ( valid_json( $message ) ? json_decode( $message ) : $message ) ) );
 
             // Output
-            if ($this->config->debug) {
+            if( $this->config->debug )
+            {
                 output('info', 'Callback event "' . $this->callback['event'][1] . '" called');
             }
         }
 
         // Output
-        if ($this->config->debug) {
-            output('info',
-                'Client (' . $client->resourceId . ') send \'' . $message . '\' to (' . $user->resourceId . ')');
+        if( $this->config->debug )
+        {
+            output('info', 'Client (' . $client->resourceId . ') send \'' . $message . '\' to (' . $user->resourceId . ')');
         }
     }
-
 }

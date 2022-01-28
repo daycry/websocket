@@ -13,5 +13,5 @@ class Websocket extends BaseConfig
     public $jwt_key = "GGFSRTSYTSOPLGCCXS";
     public $token_timeout = 1;
 
-    public $callbacks = ['auth', 'event', 'close', 'citimer', 'roomjoin', 'roomleave', 'roomchat', 'chat'];
+    public $callbacks = [ 'auth', 'event', 'close', 'timer' ];
 }
