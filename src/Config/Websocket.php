@@ -11,7 +11,12 @@ class Websocket extends BaseConfig
     public $auth = false;
     public $debug = false;
 
-    public $callbacks = [ 'auth', 'event', 'close', 'timer' ];
+    public $callbacks = [ 'auth', 'event', 'close', 'timer', 'roomjoin', 'roomleave', 'room' ];
+
+    /**
+     * Server Configuration
+     */
+    public $serverClass = \Daycry\Websocket\Server\Server::class;
 
     /**
      * JWT Token configuration

@@ -105,6 +105,12 @@
 
     conn.onmessage = function (e) {
         var data = JSON.parse(e.data);
+        switch (json.type) {
+            case 'roomchat':
+                //  $('#chat_output').append(json.msg);
+                SendToRoomManagement(json.room_name, json.sender, json.receiver, json.msg);
+                break;
+        }
         if (data.message) {
             $('#messages').append(data.user_id + ' : ' + data.message + '<br>');
         }

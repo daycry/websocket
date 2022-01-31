@@ -8,10 +8,6 @@ use Ratchet\WebSocket\WsServer;
 class Websocket
 {
     public BaseConfig $config;
-    
-    public ?string $host = null;
-
-    public ?string $port = null;
 
     public bool $auth = false;
 
@@ -32,7 +28,7 @@ class Websocket
         $server = IoServer::factory(
             new HttpServer(
                 new WsServer(
-                    new Server($this->config, $this->callback)
+                    new $this->config->serverClass($this->config, $this->callback)
                 )
             ),
             $this->config->port,
