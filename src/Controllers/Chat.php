@@ -40,6 +40,8 @@ class Chat extends Controller
     public function _auth( $content = null )
     {
         // Here you can verify everything you want to perform user login.
+        // you can return an identifier or array or object
+        //if you return array or object you must return an attibute user_id
         return( !empty( $content->user_id ) ) ? $content->user_id : false;
     }
 
@@ -74,7 +76,7 @@ class Chat extends Controller
         return null;
     }
 
-    public function _chat( $content = null ) : ?array
+    public function _chat( $content = null ) : ?object
     {
         output( 'success', 'Hey ! I\'m an CHAT callback: ' . json_encode( $content ) );
         $content->message = "Message changed";

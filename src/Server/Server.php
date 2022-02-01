@@ -26,7 +26,8 @@ class Server extends AbstractServer implements MessageComponentInterface, Server
     public function onOpen(ConnectionInterface $connection)
     {
         // Add client to global clients object
-        $this->clients->attach($connection);
+        //$this->clients->attach($connection);
+        $this->clients[ $connection->resourceId ] = $connection;
 
         // Output
         if( $this->config->debug )
@@ -75,7 +76,7 @@ class Server extends AbstractServer implements MessageComponentInterface, Server
                     $auth = call_user_func_array( $this->callback[ 'auth' ], array( $content ) );
 
                     // Verify authentication
-                    if( empty( $auth ) || !is_integer( $auth ) )
+                    if( empty( $auth ) )
                     {
                         output('error', 'Client (' . $client->resourceId . ') authentication failure');
                         $client->send(json_encode(array("type" => "error", "msg" => 'Invalid ID or Password.')));
@@ -84,9 +85,19 @@ class Server extends AbstractServer implements MessageComponentInterface, Server
                     }
 
                     // Add UID to associative array of subscribers
-                    $client->subscriber_id = $auth;
+                    if( is_array( $auth ) || is_object( $auth ) )
+                    {
+                        foreach( $auth as $key => $value )
+                        {
+                            $client->{ $key } = $value;
+                        }
+                    }else{
+                        $client->subscriber_id = $auth;
+                    }
 
-                    if( $this->config->auth )
+                    $this->clients[ $client->resourceId ] = $client;
+
+                    if( $this->config->auth && $auth )
                     {
                         $data = json_encode(array("type" => "token", "token" => Authorization::generateToken($client->resourceId)));
                         $this->sendMessage($client, $data, $client);
@@ -106,13 +117,17 @@ class Server extends AbstractServer implements MessageComponentInterface, Server
                 {
                     if( $this->config->auth )
                     {
-                        if( $validJwt = valid_jwt( $content->token ) == false )
+                        if( isset( $content->token ) && $validJwt = valid_jwt( $content->token ) == false )
                         {
                             $client->send( json_encode( array("type" => "error", "message" => 'Invalid Token.' ) ) );
+                        }else{
+                            $validJwt = false;
+                            // Closing client connexion with error code "CLOSE_ABNORMAL"
+                            $client->close(1006);
                         }
                     }
 
-                    if( $validJwt )
+                    if( $validJwt === true )
                     {
                         if( $content->type == 'roomjoin' || $content->type == 'roomleave' )
                         {
@@ -128,14 +143,11 @@ class Server extends AbstractServer implements MessageComponentInterface, Server
                                     if( $room != false )
                                     {
                                         $room = $room->join($content, $client);
-                                        $this->_updateRoom( $room, url_title( $room->getRoomName() ) );
+                                        $this->_updateRoom( $room, url_title( $content->room_name ) );
                                     }else{
-
-
                                         $room = New Room();
                                         $room->setRoomName( $content->room_name );
                                         $this->rooms[ url_title( $content->room_name ) ] = $room;
-                                        //array_push( $this->rooms, $room );
                                         $room = $room->join($content, $client);
                                         $this->_updateRoom( $room, url_title( $room->getRoomName() ) );
                                     }
@@ -143,7 +155,7 @@ class Server extends AbstractServer implements MessageComponentInterface, Server
                                     //leave room
                                     if( $room != false )
                                     {
-                                        $room->leave( $content, $client );
+                                        $room = $room->leave( $content, $client );
                                         $this->_updateRoom( $room, url_title( $room->getRoomName() ) );
                                     }
                                 }
@@ -196,213 +208,6 @@ class Server extends AbstractServer implements MessageComponentInterface, Server
                     }
                 }
             }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            /*if(!empty($datas->type) && $datas->type == 'socket')
-            {
-                if( !empty( $datas->user_id ) && $datas->user_id !== $client->subscriber_id )
-                {
-                    if( !empty( $this->callback['auth'] ) && empty($client->subscriber_id ) )
-                    {
-                        // Call user personal callback
-                        $auth = call_user_func_array( $this->callback[ 'auth' ], array( $datas ) );
-
-                        // Verify authentication
-                        if( empty( $auth ) || !is_integer( $auth ) )
-                        {
-                            output('error', 'Client (' . $client->resourceId . ') authentication failure');
-                            $client->send(json_encode(array("type" => "error", "msg" => 'Invalid ID or Password.')));
-                            // Closing client connexion with error code "CLOSE_ABNORMAL"
-                            $client->close(1006);
-                        }
-
-                        // Add UID to associative array of subscribers
-                        $client->subscriber_id = $auth;
-
-                        if( $this->config->auth )
-                        {
-                            $data = json_encode(array("type" => "token", "token" => Authorization::generateToken($client->resourceId)));
-                            $this->send_message($client, $data, $client);
-                        }
-
-                        // Output
-                        if ($this->config->debug) {
-                            output('success', 'Client (' . $client->resourceId . ') authentication success');
-                            output('success', 'Token : ' . Authorization::generateToken($client->resourceId));
-                        }
-                    }
-                }
-            }elseif(!empty($datas->type) && $datas->type == 'roomjoin')
-            {
-                if( $this->config->auth )
-                {
-                    if( valid_jwt( $datas->token ) != false )
-                    {
-                        $room = $this->_checkRoom( $datas->room_name );
-
-                        if( $room != false )
-                        {
-                            $room->join($datas, $client);
-                            $this->_updateRoom( $room );
-                        }else{
-                            $room = New Room();
-                            $room->setRoomName($datas->room_name);
-                            array_push( $this->rooms, $room );
-                            $room->join($datas, $client);
-                            $this->_updateRoom( $room );
-                        }
-
-                        if( !empty($this->callback[ 'roomjoin' ] ) )
-                        {
-                            // Call user personal callback
-                            call_user_func_array($this->callback['roomjoin'], array($datas, $client));
-                        }
-
-                    } else {
-                        $client->send(json_encode(array("type" => "error", "msg" => 'Invalid Token.')));
-                    }
-                }
-            }elseif(!empty($datas->type) && $datas->type == 'roomleave')
-            {
-                if( $this->config->auth )
-                {
-                    if( valid_jwt( $datas->token ) != false )
-                    {
-                        $room = $this->_checkRoom( $datas->room_name );
-
-                        if( $room != false )
-                        {
-                            $room->leave($datas, $client);
-                            $this->_updateRoom( $room );
-                        }
-
-                        if( !empty($this->callback[ 'roomleave' ] ) )
-                        {
-                            // Call user personal callback
-                            call_user_func_array($this->callback['roomleave'], array($datas, $client));
-                        }
-
-                    } else {
-                        $client->send(json_encode(array("type" => "error", "msg" => 'Invalid Token.')));
-                    }
-                }
-            }else{
-                // Now this is the management of messages destinations, at this moment, 4 possibilities :
-                // 1 - Message is not an array OR message has no destination (broadcast to everybody except us)
-                // 2 - Message is an array and have destination (broadcast to single user)
-                // 3 - Message is an array and don't have specified destination (broadcast to everybody except us)
-                // 4 - Message is an array and we wan't to broadcast to ourselves too (broadcast to everybody)
-                if( !empty( $datas->type ) )
-                {
-                    $pass = true;
-                    if( $this->config->auth )
-                    {
-                        if( valid_jwt( $datas->token ) != false )
-                        {
-                            if( !empty( $this->callback[ $datas->type ] ) )
-                            {
-                                // Call user personal callback
-                                call_user_func_array( $this->callback[ $datas->type ], array( $datas, $client ) );
-                            }
-                        } else {
-                            output( 'error', 'Client (' . $client->resourceId . ') authentication failure. Invalid Token' );
-                            $client->send( json_encode( array( "type" => "error", "msg" => 'Invalid Token.' ) ) );
-                            // Closing client connexion with error code "CLOSE_ABNORMAL"
-                            $client->close(1006);
-                            $pass = false;
-                        }
-                    }
-
-                    if( $pass )
-                    {
-                        if( $notify )
-                        {
-                            if( isset( $datas->room_name ) && !empty( $datas->room_name ) )
-                            {
-                                $room = $this->_checkRoom( $datas->room_name );
-                                if( $room )
-                                {
-                                    foreach( $room->roomUserObjList as $user )
-                                    {
-                                        if( !empty( $datas->recipient_id ) )
-                                        {
-                                            if( $user->subscriber_id == $datas->recipient_id )
-                                            {
-                                                $this->send_message($user, $message, $client);
-                                                break;
-                                            }
-                                        } else {
-                                            // Broadcast to everybody
-                                            if( $broadcast )
-                                            {
-                                                $this->send_message($user, $message, $client);
-                                            } else {
-                                                // Broadcast to everybody except us
-                                                if( $client !== $user )
-                                                {
-                                                    $this->send_message($user, $message, $client);
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }else{
-                                // We look arround all clients
-                                foreach( $this->clients as $user )
-                                {
-                                    // Broadcast to single user
-                                    if( !empty( $datas->recipient_id ) )
-                                    {
-                                        if( $user->subscriber_id == $datas->recipient_id )
-                                        {
-                                            $this->send_message($user, $message, $client);
-                                            break;
-                                        }
-                                    } else {
-                                        // Broadcast to everybody
-                                        if( $broadcast )
-                                        {
-                                            $this->send_message($user, $message, $client);
-                                        } else {
-                                            // Broadcast to everybody except us
-                                            if( $client !== $user )
-                                            {
-                                                $this->send_message($user, $message, $client);
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }*/
         } else {
             output('error', 'Client (' . $client->resourceId . ') Invalid json.');
             // Closing client connexion with error code "CLOSE_ABNORMAL"
@@ -424,12 +229,23 @@ class Server extends AbstractServer implements MessageComponentInterface, Server
             output('info', 'Client (' . $connection->resourceId . ') disconnected');
         }
 
+        //check if exist in rooms
+        foreach( $this->rooms as &$room )
+        {
+            $room = $room->leave( null, $connection );
+            $this->_updateRoom( $room, url_title( $room->getRoomName() ) );
+        }
+
         if( !empty( $this->callback['close'] ) )
         {
             call_user_func_array($this->callback['close'], array($connection));
         }
         // Detach client from SplObjectStorage
-        $this->clients->detach($connection);
+        //$this->clients->detach($connection);
+        if( isset( $this->clients[ $connection->resourceId ] ) )
+        {
+            unset( $this->clients[ $connection->resourceId ] );
+        }
     }
 
     /**

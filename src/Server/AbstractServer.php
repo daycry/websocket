@@ -6,7 +6,7 @@ use Ratchet\ConnectionInterface;
 
 abstract class AbstractServer
 {
-    protected $clients;
+    protected $clients = [];
 
     protected BaseConfig $config;
 
@@ -17,7 +17,7 @@ abstract class AbstractServer
     public function __construct( BaseConfig $config, array $callback = [] )
     {
         // Initialize object as SplObjectStorage (see PHP doc)
-        $this->clients = new \SplObjectStorage();
+        //$this->clients = new \SplObjectStorage();
 
         helper( 'text' );
         helper( 'websocket' );
@@ -87,7 +87,7 @@ abstract class AbstractServer
 
     protected function _findSendMessage( $users, $recipientId, $message, ConnectionInterface $client )
     {
-        foreach( $users as $user )
+        foreach( $users as $key => $user )
         {
             if( $user->subscriber_id == $recipientId )
             {
@@ -99,7 +99,7 @@ abstract class AbstractServer
 
     protected function _AllSendMessage( $users, $message, ConnectionInterface $client )
     {
-        foreach( $users as $user )
+        foreach( $users as $key => $user )
         {
             $this->sendMessage( $user, $message, $client );
         }

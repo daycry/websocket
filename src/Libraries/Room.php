@@ -4,19 +4,16 @@ use Ratchet\ConnectionInterface;
 
 class Room
 {
-    public $roomName;
-
-    public $roomUserList;
+    public string $roomName;
 
     public array $roomUserObjList = [];
 
-    private $roomlimit = 40;
+    private $roomLimit = 5;
 
     private array $kickedUser = array();
 
     public function __construct()
     {
-        $this->roomUserList = array();
         $this->roomUserObjList = array();
     }
 
@@ -34,18 +31,18 @@ class Room
 
     public function getRoomLimit()
     {
-        return $this->roomlimit;
+        return $this->roomLimit;
     }
 
-    public function setRoomLimit($roomlimit)
+    public function setRoomLimit($roomLimit)
     {
-        $this->roomlimit = $roomlimit;
+        $this->roomLimit = $roomLimit;
 
         return $this;
     }
 
     public function join($data, ConnectionInterface $client)
-    {
+    {        
         if( in_array( $data->user_id, $this->kickedUser ) )
         {
             $msg = array(
@@ -55,7 +52,7 @@ class Room
 
             $client->send(json_encode($msg));
 
-        }elseif( count( $this->roomUserList ) > $this->roomlimit )
+        }elseif( count( $this->roomUserObjList ) > $this->roomLimit )
         {
             $msg = array(
                 "type" => "error",
@@ -64,7 +61,7 @@ class Room
 
             $client->send(json_encode($msg));
 
-        }elseif( in_array( $data->user_id, $this->roomUserList ) )
+        }elseif( isset( $this->roomUserObjList[ $client->resourceId ] ) )
         {
             $msg = array(
                 "status" => true,
@@ -78,8 +75,8 @@ class Room
             $client->send(json_encode($msg));
 
         }else{
-            array_push($this->roomUserList, $data->user_id);
-            array_push($this->roomUserObjList, $client);
+            //array_push($this->roomUserList, $client->resourceId );
+            $this->roomUserObjList[ $client->resourceId ] = $client;
 
             $msg = array(
                 "status" => true,
@@ -94,22 +91,34 @@ class Room
 
             $this->SendMsgToRoomAllUser($this->roomName, $this->roomName, $data->user_id . " has joined.");
 
+            output( 'success', 'count in room : ' . count( $this->roomUserObjList ) );
+
             return $this;
         }
-
     }
 
-    public function leave( $data, ConnectionInterface $client )
+    public function leave( $data = null, ConnectionInterface $client )
     {
-        $this->RemoveFromList($client);
+        if( $data == null )
+        {
+            $data = $this->roomUserObjList[ $client->resourceId ];
+        }
+        output( 'success', 'data resource : ' . json_encode( $client->resourceId ) );
+        output( 'success', 'data leave : ' . json_encode( $client->user_id ) );
 
-        $this->SendMsgRoom($this->roomName, $this->roomName, $data->user_id . " has left.");
+        $this->RemoveFromList( $client->resourceId );
+
+        //$this->SendMsgRoom($this->roomName, $this->roomName, $data->user_id . " has left.");
+        $this->SendMsgToRoomAllUser($this->roomName, $this->roomName, $client->user_id . " has left.");
+
+        return $this;
+        
     }
 
     public function SendMsgToRoomAllUser($sender, $receiver, $msg)
     {
-        foreach ($this->roomUserObjList as $client) {
-
+        foreach( $this->roomUserObjList as $key => $client )
+        {
             $client->send(json_encode(array(
                 "type" => "room",
                 "room_name" => $this->roomName,
@@ -125,7 +134,7 @@ class Room
     {
         if ($this->roomName == $sender)
         {
-            foreach ($this->roomUserObjList as $client)
+            foreach ($this->roomUserObjList as $key => $client)
             {
                 $response_to = $msg;
 
@@ -144,19 +153,32 @@ class Room
     {
         $data = array();
 
-        foreach ($this->roomUserList as $client) {
+        /*foreach ($this->roomUserList as $client) {
             if (count($data) == 0) {
                 $data[] = $client;
             } else {
                 array_push($data, $client);
             }
+        }*/
+        foreach( $this->roomUserObjList as $key => $client )
+        {
+            if( isset( $client->user_id ) )
+            {
+                array_push( $data, $client->user_id );
+            }
         }
+
         return $data;
     }
 
     private function RemoveFromList($user)
     {
-        $key = array_search($user->username, $this->roomUserList);
+        if( isset( $this->roomUserObjList[ $user ] ) )
+        {
+            unset( $this->roomUserObjList[ $user ] );
+        }
+
+        /*$key = array_search($user->user_id, $this->roomUserList);
 
         if ($key !== false) {
             unset($this->roomUserList[$key]);
@@ -165,6 +187,6 @@ class Room
         $key = array_search($user, $this->roomUserObjList);
         if ($key !== false) {
             unset($this->roomUserObjList[$key]);
-        }
+        }*/
     }
 }
