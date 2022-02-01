@@ -1,6 +1,7 @@
 <?php namespace Daycry\Websocket\Server;
 
 use CodeIgniter\Config\BaseConfig;
+
 use Ratchet\ConnectionInterface;
 use Ratchet\MessageComponentInterface;
 
@@ -47,6 +48,8 @@ class Server extends AbstractServer implements MessageComponentInterface, Server
         $broadcast = false;
         $notify = true;
         $validJwt = true;
+        $result = null;
+        $recipients = [];
 
         // Check if received var is json format
         if( valid_json( $message ) )
@@ -86,7 +89,7 @@ class Server extends AbstractServer implements MessageComponentInterface, Server
                     if( $this->config->auth )
                     {
                         $data = json_encode(array("type" => "token", "token" => Authorization::generateToken($client->resourceId)));
-                        $this->send_message($client, $data, $client);
+                        $this->sendMessage($client, $data, $client);
                     }
 
                     // Output
@@ -97,7 +100,7 @@ class Server extends AbstractServer implements MessageComponentInterface, Server
                 }
             }
 
-            if( !empty( $message ) )
+            if( !empty( $content ) )
             {
                 if( !empty( $content->type ) )
                 {
@@ -111,51 +114,84 @@ class Server extends AbstractServer implements MessageComponentInterface, Server
 
                     if( $validJwt )
                     {
-                        if( !empty($this->callback[ $content->type ] ) )
+                        if( $content->type == 'roomjoin' || $content->type == 'roomleave' )
                         {
-                            if( $content->type == 'roomjoin' || $content->type == 'roomleave' )
+                            if( !isset( $content->room_name ) && empty( $content->room_name ) )
                             {
-                                if( !isset( $content->room_name ) && empty( $content->room_name ) )
+                                $client->send( json_encode( array("type" => "error", "message" => 'Invalid Room.' ) ) );
+                            }else{
+                                $room = $this->_checkRoom( $content->room_name );
+
+                                if( $content->type == 'roomjoin' )
                                 {
-                                    $client->send( json_encode( array("type" => "error", "message" => 'Invalid Room.' ) ) );
-                                }else{
-                                    $room = $this->_checkRoom( $datas->room_name );
-
-                                    if( $content->type == 'roomjoin' )
+                                    //join room
+                                    if( $room != false )
                                     {
-                                        //join room
-                                        if( $room != false )
-                                        {
-                                            $room = $room->join($datas, $client);
-                                            $this->_updateRoom( $room, url_title( $room->getRoomName() ) );
-                                        }else{
-                                            $room = New Room();
-                                            $room->setRoomName( $content->room_name );
-                                            $this->rooms[ url_title( $content->room_name ) ] = $room;
-                                            //array_push( $this->rooms, $room );
-                                            $room->join($content, $client);
-                                            $this->_updateRoom( $room, url_title( $room->getRoomName() ) );
-                                        }
+                                        $room = $room->join($content, $client);
+                                        $this->_updateRoom( $room, url_title( $room->getRoomName() ) );
                                     }else{
-                                        //leave room
-                                        if( $room != false )
-                                        {
-                                            $room->leave( $content, $client );
-                                            $this->_updateRoom( $room, url_title( $room->getRoomName() ) );
-                                        }
-                                    }
 
-                                    if( !empty($this->callback[ $content->type ] ) )
+
+                                        $room = New Room();
+                                        $room->setRoomName( $content->room_name );
+                                        $this->rooms[ url_title( $content->room_name ) ] = $room;
+                                        //array_push( $this->rooms, $room );
+                                        $room = $room->join($content, $client);
+                                        $this->_updateRoom( $room, url_title( $room->getRoomName() ) );
+                                    }
+                                }else{
+                                    //leave room
+                                    if( $room != false )
                                     {
-                                        // Call user personal callback
-                                        call_user_func_array( $this->callback[ $content->type ], array( $content, $client ) );
+                                        $room->leave( $content, $client );
+                                        $this->_updateRoom( $room, url_title( $room->getRoomName() ) );
                                     }
                                 }
 
-                            }else{
-                                // Call user personal callback
-                                call_user_func_array( $this->callback[ $content->type ], array( $content, $client, $broadcast, $notify ) );
+                                if( !empty($this->callback[ $content->type ] ) )
+                                {
+                                    // Call user personal callback
+                                    $result = call_user_func_array( $this->callback[ $content->type ], array( $content, $client ) );
+                                }
                             }
+
+                        }else{
+                            if( !empty($this->callback[ $content->type ] ) )
+                            {
+                                // Call user personal callback
+                                $result = call_user_func_array( $this->callback[ $content->type ], array( $content, $client ) );
+                            }
+                        }
+
+                        if( $notify )
+                        {
+                            $message = ( $result ) ? json_encode( $result ) : $message;
+                            $user = false;
+                            $recipientId = ( !empty( $content->recipient_id ) ) ? $content->recipient_id : false;
+
+                            if( isset( $content->room_name ) && !empty( $content->room_name ) )
+                            {
+                                $room = $this->_checkRoom( $content->room_name );
+                                if( $room )
+                                {
+                                    $recipients = $room->roomUserObjList;
+                                }
+                            }else{
+                                $recipients = $this->clients;
+                            }
+
+                            if( $recipientId )
+                            {
+                                $this->_findSendMessage( $recipients, $recipientId, $message, $client );
+                            }else{
+                                if( $broadcast )
+                                {
+                                }else{
+                                    $this->_AllSendMessage( $recipients, $message, $client );
+                                }
+                            }
+
+                            unset( $recipients );
                         }
                     }
                 }

@@ -50,7 +50,7 @@ class Room
         {
             $msg = array(
                 "type" => "error",
-                "msg" => 'Recently you have been kicked from this room. Please Try again later.'
+                "message" => 'Recently you have been kicked from this room. Please Try again later.'
             );
 
             $client->send(json_encode($msg));
@@ -59,7 +59,7 @@ class Room
         {
             $msg = array(
                 "type" => "error",
-                "msg" => 'Room is Full.'
+                "message" => 'Room is Full.'
             );
 
             $client->send(json_encode($msg));
@@ -72,8 +72,7 @@ class Room
                 "room_name" => $data->room_name,
                 "sender" => $data->room_name,
                 "receiver" => $data->room_name,
-                "power" => 0,
-                "msg" => $this->GetRoomUserList()
+                "message" => $this->GetRoomUserList()
             );
 
             $client->send(json_encode($msg));
@@ -88,13 +87,12 @@ class Room
                 "room_name" => $data->room_name,
                 "sender" => $data->room_name,
                 "receiver" => $data->room_name,
-                "power" => 0,
-                "msg" => $this->GetRoomUserList()
+                "message" => $this->GetRoomUserList()
             );
 
             $client->send(json_encode($msg));
 
-            $this->SendMsgToRoomAllUser($this->roomName, $this->roomName, 0, $data->user_id . " has joined.");
+            $this->SendMsgToRoomAllUser($this->roomName, $this->roomName, $data->user_id . " has joined.");
 
             return $this;
         }
@@ -108,7 +106,7 @@ class Room
         $this->SendMsgRoom($this->roomName, $this->roomName, $data->user_id . " has left.");
     }
 
-    public function SendMsgToRoomAllUser($sender, $receiver, $power, $msg)
+    public function SendMsgToRoomAllUser($sender, $receiver, $msg)
     {
         foreach ($this->roomUserObjList as $client) {
 
@@ -117,8 +115,7 @@ class Room
                 "room_name" => $this->roomName,
                 "sender" => $sender,
                 "receiver" => $receiver,
-                "power" => $power,
-                "msg" => $msg
+                "message" => $msg
             )));
 
         }
@@ -137,8 +134,7 @@ class Room
                     "room_name" => $this->roomName,
                     "sender" => $sender,
                     "receiver" => $receiver,
-                    "power" => 0,
-                    "msg" => $response_to
+                    "message" => $response_to
                 )));
             }
         }

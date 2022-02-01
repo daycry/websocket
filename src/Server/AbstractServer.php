@@ -2,6 +2,8 @@
 
 use CodeIgniter\Config\BaseConfig;
 
+use Ratchet\ConnectionInterface;
+
 abstract class AbstractServer
 {
     protected $clients;
@@ -58,7 +60,7 @@ abstract class AbstractServer
      * @param array $client Sender
      * @return string
      */
-    protected function send_message($user = array(), $message = array(), $client = array())
+    protected function sendMessage( ConnectionInterface $user, $message, ConnectionInterface $client )
     {
         // Send the message
         $user->send($message);
@@ -80,6 +82,26 @@ abstract class AbstractServer
         if( $this->config->debug )
         {
             output('info', 'Client (' . $client->resourceId . ') send \'' . $message . '\' to (' . $user->resourceId . ')');
+        }
+    }
+
+    protected function _findSendMessage( $users, $recipientId, $message, ConnectionInterface $client )
+    {
+        foreach( $users as $user )
+        {
+            if( $user->subscriber_id == $recipientId )
+            {
+                $this->sendMessage( $user, $message, $client );
+                break;
+            }
+        }
+    }
+
+    protected function _AllSendMessage( $users, $message, ConnectionInterface $client )
+    {
+        foreach( $users as $user )
+        {
+            $this->sendMessage( $user, $message, $client );
         }
     }
 

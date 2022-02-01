@@ -54,10 +54,10 @@ class Publish extends BaseCommand
 
     protected function publishController()
     {
-        $path = "{$this->sourcePath}/Controllers/Websocket.php";
+        $path = "{$this->sourcePath}/Controllers/Chat.php";
         $content = file_get_contents($path);
         $content = $this->replaceNamespace($content, 'Daycry\Websocket\Controllers', 'Controllers');
-        $this->writeFile("Controllers/Websocket.php", $content);
+        $this->writeFile("Controllers/Chat.php", $content);
     }
 
     protected function publishViews()

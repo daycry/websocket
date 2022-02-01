@@ -2,6 +2,8 @@
 
 use CodeIgniter\Controller;
 
+use Ratchet\ConnectionInterface;
+
 class Chat extends Controller
 {
     public function __construct()
@@ -18,6 +20,7 @@ class Chat extends Controller
         $ws->set_callback('close', array($this, '_close'));
         $ws->set_callback('roomjoin', array($this, '_roomjoin'));
         $ws->set_callback('roomleave', array($this, '_roomleave'));
+        $ws->set_callback('chat', array($this, '_chat'));
         $ws->run();
     }
 
@@ -29,7 +32,7 @@ class Chat extends Controller
         $client->close();
     }
 
-    public function user(int $user_id = null, string $room)
+    public function user(int $user_id = null, string $room = null )
     {
         return view('Websocket/websocket_message', array( 'user_id' => $user_id, 'room' => $room ));
     }
@@ -44,30 +47,39 @@ class Chat extends Controller
     {
         // Here you can do everyting you want, each time message is received
         output( 'success', 'Hey ! I\'m an EVENT callback: ' . json_encode( $content ) );
-        //log_message('error', 'Hey ! I\'m an EVENT callback: ' . json_encode( $content ) );
+        return null;
     }
 
-    public function _roomjoin( $data, ConnectionInterface $client )
+    public function _roomjoin( $content, ConnectionInterface $client )
     {
         output( 'success', 'Hey ! I\'m an JOIN callback: ' . json_encode( $content ) );
-        //log_message('error', 'Hey ! I\'m an JOIN callback: ' . json_encode( $content ) );
+        return null;
     }
 
     public function _roomleave( $content, ConnectionInterface $client )
     {
         output( 'success', 'Hey ! I\'m an LEAVE callback: ' . json_encode( $content ) );
-        //log_message('error', 'Hey ! I\'m an LEAVE callback: ' . json_encode( $content ) );
+        return null;
     }
 
     public function _timer( $content = null )
     {
         output( 'success', 'Hey ! I\'m an TIMER callback: ' . json_encode( $content ) );
-        //log_message('error', 'Timer event: ' . $content );
+        return null;
     }
 
     public function _close( $content = null )
     {
         output( 'success', 'Hey ! I\'m an CLOSE callback: ' . json_encode( $content ) );
-        //log_message('error', 'Timer event: ' . $content );
+        return null;
+    }
+
+    public function _chat( $content = null ) : ?array
+    {
+        output( 'success', 'Hey ! I\'m an CHAT callback: ' . json_encode( $content ) );
+        $content->message = "Message changed";
+        output( 'success', 'Hey ! I\'m an CHAT callback: ' . json_encode( $content ) );
+
+        return $content;
     }
 }

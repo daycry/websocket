@@ -93,10 +93,14 @@
     var client = {
         user_id: <?php echo $user_id; ?>,
         recipient_id: null,
-        type: 'socket',
+        type: 'joinroom',
         token: null,
         message: null
     };
+
+    <?php if( $room ) { ?>
+        client['room_name'] = "<?php echo $room; ?>";
+    <?php } ?>
 
     conn.onopen = function (e) {
         conn.send(JSON.stringify(client));
@@ -105,17 +109,17 @@
 
     conn.onmessage = function (e) {
         var data = JSON.parse(e.data);
-        switch (json.type) {
-            case 'roomchat':
-                //  $('#chat_output').append(json.msg);
-                SendToRoomManagement(json.room_name, json.sender, json.receiver, json.msg);
-                break;
-        }
-        if (data.message) {
-            $('#messages').append(data.user_id + ' : ' + data.message + '<br>');
-        }
-        if (data.type === 'token') {
-            $('#token').html('JWT Token : ' + data.token);
+        switch( data.type ){
+            case 'token':
+                $('#token').html('JWT Token : ' + data.token);
+            break;
+
+            case 'chat':
+            case 'room':
+                if (data.message) {
+                    $('#messages').append(data.user_id + ' : ' + data.message + '<br>');
+                }
+            break;
         }
     };
 
