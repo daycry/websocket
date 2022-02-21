@@ -105,6 +105,17 @@ abstract class AbstractServer
         }
     }
 
+    protected function _AllSendMessageWithoutMe( $users, $message, ConnectionInterface $client )
+    {
+        foreach( $users as $key => $user )
+        {
+            if( $key != $client->resourceId )
+            {
+                $this->sendMessage( $user, $message, $client );
+            }
+        }
+    }
+
     protected function _checkRoom( $name )
     {
         foreach( $this->rooms as $room )

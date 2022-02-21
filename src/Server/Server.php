@@ -198,8 +198,9 @@ class Server extends AbstractServer implements MessageComponentInterface, Server
                             }else{
                                 if( $broadcast )
                                 {
-                                }else{
                                     $this->_AllSendMessage( $recipients, $message, $client );
+                                }else{
+                                    $this->_AllSendMessageWithoutMe( $recipients, $message, $client );
                                 }
                             }
 
