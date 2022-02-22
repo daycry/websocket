@@ -3,7 +3,7 @@
 use CodeIgniter\Exceptions\ExceptionInterface;
 use CodeIgniter\Exceptions\FrameworkException;
 
-class CodeigniterWebsocketException extends FrameworkException implements ExceptionInterface
+class WebsocketException extends FrameworkException implements ExceptionInterface
 {
     public static function forMissingName()
     {
