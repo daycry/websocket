@@ -52,7 +52,7 @@ class Room
 
             $client->send(json_encode($msg));
 
-        }elseif( count( $this->roomUserObjList ) > $this->roomLimit )
+        }elseif( count( $this->roomUserObjList ) >= $this->roomLimit )
         {
             $msg = array(
                 "type" => "error",
