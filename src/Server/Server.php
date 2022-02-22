@@ -146,6 +146,11 @@ class Server extends AbstractServer implements MessageComponentInterface, Server
                                         $this->_updateRoom( $room, url_title( $content->room_name ) );
                                     }else{
                                         $room = New Room();
+                                        if( isset( $content->room_limit ) )
+                                        {
+                                            $room->setRoomLimit( $content->room_limit );
+                                        }
+                                        
                                         $room->setRoomName( $content->room_name );
                                         $this->rooms[ url_title( $content->room_name ) ] = $room;
                                         $room = $room->join($content, $client);
@@ -178,7 +183,6 @@ class Server extends AbstractServer implements MessageComponentInterface, Server
                         if( $notify )
                         {
                             $message = ( $result ) ? json_encode( $result ) : $message;
-                            $user = false;
                             $recipientId = ( !empty( $content->recipient_id ) ) ? $content->recipient_id : false;
 
                             if( isset( $content->room_name ) && !empty( $content->room_name ) )

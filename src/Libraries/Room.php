@@ -42,7 +42,7 @@ class Room
     }
 
     public function join($data, ConnectionInterface $client)
-    {        
+    {
         if( in_array( $data->user_id, $this->kickedUser ) )
         {
             $msg = array(
@@ -89,7 +89,8 @@ class Room
 
             $client->send(json_encode($msg));
 
-            $this->SendMsgToRoomAllUser($this->roomName, $this->roomName, $data->user_id . " has joined.");
+            $u = ( isset( $data->user_id ) && $data->user_id ) ? $data->user_id : $client->resourceId;
+            $this->SendMsgToRoomAllUser($this->roomName, $this->roomName, "(" . $u . ") has joined.", $client);
 
             output( 'success', 'count in room : ' . count( $this->roomUserObjList ) );
 
@@ -109,23 +110,27 @@ class Room
         $this->RemoveFromList( $client->resourceId );
 
         //$this->SendMsgRoom($this->roomName, $this->roomName, $data->user_id . " has left.");
-        $this->SendMsgToRoomAllUser($this->roomName, $this->roomName, $client->user_id . " has left.");
+        $u = ( isset( $data->user_id ) && $data->user_id ) ? $data->user_id : $client->resourceId;
+        $this->SendMsgToRoomAllUser($this->roomName, $this->roomName, "(" . $u . ") has left.", $client);
 
         return $this;
         
     }
 
-    public function SendMsgToRoomAllUser($sender, $receiver, $msg)
+    public function SendMsgToRoomAllUser($sender, $receiver, $msg, $client = null)
     {
-        foreach( $this->roomUserObjList as $key => $client )
+        foreach( $this->roomUserObjList as $key => $user )
         {
-            $client->send(json_encode(array(
-                "type" => "room",
-                "room_name" => $this->roomName,
-                "sender" => $sender,
-                "receiver" => $receiver,
-                "message" => $msg
-            )));
+            if( !$client || ( isset($client) && $client->resourceId != $key ) )
+            {
+                $user->send(json_encode(array(
+                    "type" => "room",
+                    "room_name" => $this->roomName,
+                    "sender" => $sender,
+                    "receiver" => $receiver,
+                    "message" => $msg
+                )));
+            }
 
         }
     }
