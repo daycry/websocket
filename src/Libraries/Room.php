@@ -93,9 +93,9 @@ class Room
             $this->SendMsgToRoomAllUser($this->roomName, $this->roomName, "(" . $u . ") has joined.", $client);
 
             output( 'success', 'count in room : ' . count( $this->roomUserObjList ) );
-
-            return $this;
         }
+
+        return $this;
     }
 
     public function leave( $data = null, ConnectionInterface $client )
