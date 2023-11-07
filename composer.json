@@ -24,7 +24,8 @@
     "require": {
       "php": "^7.3 || ^8.0",
       "cboden/ratchet": "^0.4.1",
-      "textalk/websocket": "^1.2"
+      "textalk/websocket": "^1.2",
+      "daycry/jwt": "^1.0"
     },
     "require-dev": {
       "codeigniter4/framework": "^4.1"
@@ -36,8 +37,7 @@
     },
     "scripts": {
       "post-update-cmd": [
-        "composer dump-autoload",
-        "php spark migrate:latest -n all"
+        "composer dump-autoload"
       ],
       "test": "phpunit"
     }

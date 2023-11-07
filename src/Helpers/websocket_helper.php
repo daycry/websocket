@@ -1,10 +1,8 @@
 <?php
 
 use CodeIgniter\CLI\CLI;
-use Daycry\Websocket\Libraries\Authorization;
 
 if (!function_exists('valid_json')) {
-
     /**
      * Check JSON validity
      * @method valid_json
@@ -14,20 +12,6 @@ if (!function_exists('valid_json')) {
     function valid_json($var)
     {
         return (is_string($var)) && (is_array(json_decode($var, true))) && (json_last_error() == JSON_ERROR_NONE) ? true : false;
-    }
-}
-
-if (!function_exists('valid_jwt')) {
-
-    /**
-     * Check JWT validity
-     * @method valid_jwt
-     * @param mixed $token Variable to check
-     * @return Object/false
-     */
-    function valid_jwt($token)
-    {
-        return Authorization::validateToken($token);
     }
 }
 

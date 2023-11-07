@@ -135,36 +135,10 @@ class Room
         }
     }
 
-    private function SendMsgRoom($sender, $receiver, $msg)
-    {
-        if ($this->roomName == $sender)
-        {
-            foreach ($this->roomUserObjList as $key => $client)
-            {
-                $response_to = $msg;
-
-                $client->send(json_encode(array(
-                    "type" => "room",
-                    "room_name" => $this->roomName,
-                    "sender" => $sender,
-                    "receiver" => $receiver,
-                    "message" => $response_to
-                )));
-            }
-        }
-    }
-
     public function GetRoomUserList()
     {
         $data = array();
 
-        /*foreach ($this->roomUserList as $client) {
-            if (count($data) == 0) {
-                $data[] = $client;
-            } else {
-                array_push($data, $client);
-            }
-        }*/
         foreach( $this->roomUserObjList as $key => $client )
         {
             if( isset( $client->user_id ) )
@@ -182,16 +156,5 @@ class Room
         {
             unset( $this->roomUserObjList[ $user ] );
         }
-
-        /*$key = array_search($user->user_id, $this->roomUserList);
-
-        if ($key !== false) {
-            unset($this->roomUserList[$key]);
-        }
-
-        $key = array_search($user, $this->roomUserObjList);
-        if ($key !== false) {
-            unset($this->roomUserObjList[$key]);
-        }*/
     }
 }

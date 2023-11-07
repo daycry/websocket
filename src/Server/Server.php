@@ -1,18 +1,16 @@
 <?php namespace Daycry\Websocket\Server;
 
-use CodeIgniter\Config\BaseConfig;
-
+use Daycry\JWT\JWT;
+use Daycry\Websocket\Config\Websocket;
 use Ratchet\ConnectionInterface;
 use Ratchet\MessageComponentInterface;
-
-use Daycry\Websocket\Libraries\Authorization;
 use Daycry\Websocket\Libraries\Room;
 use Daycry\Websocket\Interfaces\ServerInterface;
 use Daycry\Websocket\Server\AbstractServer;
 
 class Server extends AbstractServer implements MessageComponentInterface, ServerInterface
 {
-    public function __construct( BaseConfig $config, array $callback = [] )
+    public function __construct( Websocket $config, array $callback = [] )
     {
         parent::__construct( $config, $callback );
     }
@@ -25,8 +23,6 @@ class Server extends AbstractServer implements MessageComponentInterface, Server
      */
     public function onOpen(ConnectionInterface $connection)
     {
-        // Add client to global clients object
-        //$this->clients->attach($connection);
         $this->clients[ $connection->resourceId ] = $connection;
 
         // Output
@@ -99,14 +95,14 @@ class Server extends AbstractServer implements MessageComponentInterface, Server
 
                     if( $this->config->auth && $auth )
                     {
-                        $data = json_encode(array("type" => "token", "token" => Authorization::generateToken($client->resourceId)));
+                        $data = json_encode(array("type" => "token", "token" => (new JWT())->encode($client->resourceId)));
                         $this->sendMessage($client, $data, $client);
                     }
 
                     // Output
                     if ($this->config->debug) {
                         output('success', 'Client (' . $client->resourceId . ') authentication success');
-                        output('success', 'Token : ' . Authorization::generateToken($client->resourceId));
+                        output('success', 'Token : ' . (new JWT())->encode($client->resourceId));
                     }
                 }
             }
@@ -117,7 +113,8 @@ class Server extends AbstractServer implements MessageComponentInterface, Server
                 {
                     if( $this->config->auth )
                     {
-                        if( isset( $content->token ) && $validJwt = valid_jwt( $content->token ) == false )
+                        $validJwt = ((new JWT())->decode($content->token)->get('params')) ? true : false;
+                        if( isset( $content->token ) && $validJwt == false )
                         {
                             $client->send( json_encode( array("type" => "error", "message" => 'Invalid Token.' ) ) );
                         }else{

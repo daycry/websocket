@@ -1,30 +1,23 @@
 <?php namespace Daycry\Websocket\Server;
 
-use CodeIgniter\Config\BaseConfig;
-
+use Daycry\Websocket\Config\Websocket;
 use Ratchet\ConnectionInterface;
 
 abstract class AbstractServer
 {
-    protected $clients = [];
+    protected array $clients = [];
 
-    protected BaseConfig $config;
+    protected Websocket $config;
 
     protected array $rooms = [];
 
     protected array $callback = array();
 
-    public function __construct( BaseConfig $config, array $callback = [] )
+    public function __construct( Websocket $config, array $callback = [] )
     {
-        // Initialize object as SplObjectStorage (see PHP doc)
-        //$this->clients = new \SplObjectStorage();
+        helper( ['text', 'websocket'] );
 
-        helper( 'text' );
-        helper( 'websocket' );
-
-        // save configuration
         $this->config = $config;
-
         $this->callback = $callback;
 
         // // Check if auth is required
@@ -131,13 +124,6 @@ abstract class AbstractServer
 
     protected function _updateRoom( $room, $name )
     {
-        $this->room[ $name ] = $room;
-        /*foreach( $this->rooms as &$r )
-        {
-            if( $r->getRoomName() == $room->getRoomName() )
-            {
-                $r = $room;
-            }
-        }*/
+        $this->rooms[ $name ] = $room;
     }
 }

@@ -1,26 +1,18 @@
-<?php namespace Daycry\Websocket\Config;
+<?php 
+namespace Daycry\Websocket\Config;
 
 use CodeIgniter\Config\BaseConfig;
 
 class Websocket extends BaseConfig
 {
-    public $host = "0.0.0.0";
-    public $port = 8282;
-    public $timer = false;
-    public $interval = 1;
-    public $auth = false;
-    public $debug = false;
+    public string $host = "0.0.0.0";
+    public int $port = 8282;
+    public bool $timer = false;
+    public int $interval = 1;
+    public bool $auth = false;
+    public bool $debug = false;
 
-    public $callbacks = [ 'auth', 'event', 'close', 'timer', 'roomjoin', 'roomleave', 'room' ];
+    public array $callbacks = [ 'auth', 'event', 'close', 'timer', 'roomjoin', 'roomleave', 'room' ];
 
-    /**
-     * Server Configuration
-     */
     public $serverClass = \Daycry\Websocket\Server\Server::class;
-
-    /**
-     * JWT Token configuration
-     */
-    public $jwtClass = \Daycry\Websocket\Libraries\JWT::class;
-    public $jwtConfigClass = \Daycry\Websocket\Config\JWT::class;
 }

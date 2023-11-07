@@ -1,10 +1,10 @@
 <?php namespace Daycry\Websocket\Controllers;
 
-use CodeIgniter\Controller;
+use App\Controllers\BaseController;
 
 use Ratchet\ConnectionInterface;
 
-class Chat extends Controller
+class Chat extends BaseController
 {
     public function __construct()
     {

@@ -1,12 +1,12 @@
 <?php
 namespace Daycry\Websocket\Interfaces;
 
-use CodeIgniter\Config\BaseConfig;
+use Daycry\Websocket\Config\Websocket;
 use Ratchet\ConnectionInterface;
 
 interface ServerInterface
 {
-    public function __construct( BaseConfig $config, array $callback = [] );
+    public function __construct( Websocket $config, array $callback = [] );
     public function onOpen( ConnectionInterface $connection );
     public function onMessage( ConnectionInterface $connection, $message );
     public function onClose( ConnectionInterface $connection );

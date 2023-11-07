@@ -2,16 +2,7 @@
 
 use CodeIgniter\Config\BaseService;
 use CodeIgniter\Config\BaseConfig;
-
-/**
- * @package   CodeIgniter WebSocket Library: Default config service
- * @category  Libraries
- * @author    Taki Elias <taki.elias@gmail.com>
- * @license   http://opensource.org/licenses/MIT > MIT License
- * @link      https://github.com/takielias
- *
- * CodeIgniter WebSocket library. It allows you to make powerful realtime applications by using Ratchet Websocket
- */
+use Daycry\Websocket\Libraries\Websocket;
 
 class Services extends BaseService
 {
@@ -27,6 +18,6 @@ class Services extends BaseService
             $config = config( 'Websocket' );
         }
 
-        return new \Daycry\Websocket\Libraries\Websocket( $config );
+        return new Websocket( $config );
     }
 }
