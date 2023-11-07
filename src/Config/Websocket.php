@@ -2,6 +2,8 @@
 namespace Daycry\Websocket\Config;
 
 use CodeIgniter\Config\BaseConfig;
+use Daycry\Websocket\Server\AbstractServer;
+use Daycry\Websocket\Server\Server;
 
 class Websocket extends BaseConfig
 {
@@ -14,5 +16,5 @@ class Websocket extends BaseConfig
 
     public array $callbacks = [ 'auth', 'event', 'close', 'timer', 'roomjoin', 'roomleave', 'room' ];
 
-    public $serverClass = \Daycry\Websocket\Server\Server::class;
+    public AbstractServer $serverClass = Server::class;
 }
