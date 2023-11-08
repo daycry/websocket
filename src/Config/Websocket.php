@@ -16,5 +16,5 @@ class Websocket extends BaseConfig
 
     public array $callbacks = [ 'auth', 'event', 'close', 'timer', 'roomjoin', 'roomleave', 'room' ];
 
-    public AbstractServer $serverClass = Server::class;
+    public string $serverClass = Server::class;
 }

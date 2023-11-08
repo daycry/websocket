@@ -1,13 +1,13 @@
 <?php namespace Daycry\Websocket\Libraries;
 
-use CodeIgniter\Config\BaseConfig;
+use Daycry\Websocket\Config\Websocket as ConfigWebsocket;
 use Ratchet\Http\HttpServer;
 use Ratchet\Server\IoServer;
 use Ratchet\WebSocket\WsServer;
 
 class Websocket
 {
-    public BaseConfig $config;
+    public ConfigWebsocket $config;
 
     public bool $auth = false;
 
@@ -16,7 +16,7 @@ class Websocket
     public array $callback = [];
 
     // initiate library, check for existing Configuration
-    public function __construct( BaseConfig $config )
+    public function __construct( ConfigWebsocket $config )
     {
         helper('websocket');
         $this->config = $config;
